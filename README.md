@@ -399,7 +399,55 @@ docs/specs/         design spec
 
 ## Deployment
 
-Artifacts are written and correct; **nothing has been deployed**.
+### Why the backend is not on Vercel
+
+Vercel hosts the frontend. It **cannot** host this backend, and that is a hard
+platform limit rather than a configuration problem: serverless functions cap at
+250 MB unzipped, while torch alone is ~800 MB and the bge-large weights another
+1.3 GB. There is also no persistent process, so the model would reload on every
+invocation.
+
+Render's free tier does not solve it either — 512 MB against a ~1.3 GB working
+set will OOM on model load (see `render.yaml`).
+
+Backend hosting options that actually work:
+
+| Host | Free tier | Fits bge-large? |
+|---|---|---|
+| Hugging Face Spaces (CPU basic) | 16 GB RAM, persistent | yes |
+| Render Starter (~$7/mo) | 2 GB | yes |
+| Render free | 512 MB | no — OOM |
+
+### Frontend on Vercel
+
+The deployed frontend is **intentionally standalone**. With no backend reachable it
+renders a clear notice explaining that the agent is not hosted, and links back to
+this repository — rather than showing a developer-oriented "run uvicorn" message to
+someone who has no local checkout. Everything that does not require the API — the
+hero, the architecture explainer, the design system — renders normally.
+
+```bash
+cd frontend
+vercel --prod
+```
+
+Set the project's **Root Directory to `frontend`** if importing via the dashboard.
+
+When a backend does exist, point the frontend at it and redeploy. Note that
+`NEXT_PUBLIC_*` values are inlined at build time, so this needs a rebuild, not just
+an environment change:
+
+```bash
+vercel env add NEXT_PUBLIC_API_URL production   # e.g. https://<space>.hf.space
+vercel --prod
+```
+
+Then add the Vercel origin to `CORS_ORIGINS` on the backend — it is a locked
+allow-list and will reject the deployed frontend until you do.
+
+### Artifacts
+
+Written and correct; **nothing else has been deployed**.
 
 - `.github/workflows/ci.yml` — lint → type-check → tests → build
 - `render.yaml` (backend, native Python runtime), `frontend/vercel.json` (frontend)

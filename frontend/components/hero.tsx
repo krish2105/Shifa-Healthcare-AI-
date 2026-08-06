@@ -7,6 +7,7 @@ import { getMetrics } from "@/lib/api";
 import type { MetricsSummary } from "@/lib/types";
 import { useEffectsEnabled } from "@/lib/use-effects";
 import { AnimatedCounter } from "./animated-counter";
+import { BackendNotice } from "./backend-notice";
 
 /**
  * The WebGL scene loads only in the browser, only after mount, and only when
@@ -159,13 +160,7 @@ export function Hero() {
             ))}
           </motion.dl>
 
-          {apiDown && (
-            <p className="mt-5 rounded-md border border-warn/30 bg-warn/10 px-3 py-2 text-[12px] text-warn">
-              Backend unreachable. Start it with{" "}
-              <code className="font-mono">uvicorn app.main:app</code> in{" "}
-              <code className="font-mono">/backend</code>.
-            </p>
-          )}
+          {apiDown && <BackendNotice />}
           {metrics?.degraded && (
             <p className="mt-5 rounded-md border border-warn/30 bg-warn/10 px-3 py-2 text-[12px] text-warn">
               <strong className="font-medium">Degraded mode.</strong> No LLM credential is
