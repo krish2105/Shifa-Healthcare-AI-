@@ -39,7 +39,7 @@ device.** No real PHI enters the codebase or the demo data.
 | Graph store | NetworkX pickle | Zero infrastructure. Neo4j migration path documented, not built. |
 | Critic threshold | faithfulness ≥ 0.75; max 2 reformulations; then escalate | Config value, not a constant. RESULTS.md reports the threshold-vs-escalation-rate curve. |
 | Benchmarks | Runner supports `--n`, built for 200; executed at n=50 | Groq free-tier rate limits. Results checkpoint to disk so a stall loses nothing. |
-| Deployment | Artifacts written, nothing deployed | Dockerfiles, compose, CI, `render.yaml`, `vercel.json` exist and are correct. Only the local stack is run. |
+| Deployment | Artifacts written, nothing deployed | CI, `render.yaml` (native Python runtime), `vercel.json`, `Makefile`. Only the local stack is run. Docker was built and then removed on request — the torch-dominated image bought little over `uv` + a pinned Python for a single service. |
 | Art direction | A — graphite base, cool teal accent | Selected from three built mockups. |
 | Typography | Geist + Geist Mono, self-hosted via `next/font` | Variable, zero layout shift, mono handles dense numeric readouts. |
 

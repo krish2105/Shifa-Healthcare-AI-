@@ -90,29 +90,3 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
           NEXT_TELEMETRY_DISABLED: "1"
-
-  docker:
-    name: Docker images build
-    runs-on: ubuntu-latest
-    # Image builds are slow and only meaningful once the code is known good.
-    needs: [backend, frontend]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Build backend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          push: false
-          build-args: NEXT_PUBLIC_API_URL=http://localhost:8000
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

@@ -91,15 +91,7 @@ build: ## Production build of the frontend
 fmt: ## Auto-fix lint issues
 	cd backend && ../$(PY) -m ruff check app scripts tests --fix
 
-# ------------------------------------------------------------------ docker
-
-.PHONY: up
-up: ## docker compose up --build
-	docker compose up --build
-
-.PHONY: down
-down: ## docker compose down
-	docker compose down
+# ------------------------------------------------------------------ housekeeping
 
 .PHONY: clean
 clean: ## Remove caches and build output (keeps ingested data)

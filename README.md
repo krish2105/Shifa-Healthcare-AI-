@@ -204,10 +204,14 @@ python scripts/build_graph.py           # LLM triple extraction → NetworkX gra
 python scripts/run_benchmarks.py --n 50 # writes RESULTS.md inputs
 ```
 
-### Docker
+### Or use the Makefile
 
 ```bash
-docker compose up --build
+make install     # both packages
+make pipeline    # data → index → risk  (everything needing no API key)
+make api         # backend on :8000
+make web         # frontend on :3000
+make check       # lint → types → tests → build
 ```
 
 ---
@@ -384,10 +388,15 @@ docs/specs/         design spec
 
 Artifacts are written and correct; **nothing has been deployed**.
 
-- `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`
-- `.github/workflows/ci.yml` — lint → types → tests → build → docker
-- `render.yaml` (backend), `frontend/vercel.json` (frontend)
+- `.github/workflows/ci.yml` — lint → type-check → tests → build
+- `render.yaml` (backend, native Python runtime), `frontend/vercel.json` (frontend)
+- `Makefile` — one-command setup, pipeline, run, and quality targets
 - `.env.example` in both packages; real secrets are never committed
+
+There is intentionally **no Docker** in this project. The backend's dependency tree
+is torch-dominated (~2.5 GB image even on CPU wheels), which buys little over
+`uv` + a pinned Python for a single-service demo, and Render's native Python runtime
+deploys it directly.
 
 CI runs with no LLM key and no database on purpose, exercising the degraded path
 end-to-end — that path is a supported mode, so a regression in it fails the build.

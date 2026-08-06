@@ -1,23 +1,26 @@
-# Render blueprint for the Shifa42 backend.
+# Render blueprint for the Shifa42 backend — native Python runtime, no Docker.
 #
-# NOT DEPLOYED. This file is written and correct; nothing in this repository has
-# been pushed to Render. `render.yaml` is committed so the deployment is
-# reproducible by whoever chooses to run it.
+# NOT DEPLOYED. This file is written and correct; nothing here has been pushed to
+# Render. It is committed so the deployment is reproducible by whoever runs it.
 #
-# Before deploying, read the free-tier caveats at the bottom — they materially
-# affect whether this service behaves the way the local stack does.
+# Read the free-tier caveats at the bottom before deploying — they materially
+# affect whether this behaves like the local stack.
 
 services:
   - type: web
     name: shifa42-backend
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    runtime: python
     plan: free
     region: oregon
+    rootDir: backend
     healthCheckPath: /api/health
 
+    buildCommand: pip install --upgrade pip && pip install -e .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.15"
       - key: APP_ENV
         value: production
       - key: LOG_LEVEL
@@ -32,7 +35,11 @@ services:
       - key: MAX_REFORMULATIONS
         value: "2"
       - key: HF_HOME
-        value: /app/.cache/huggingface
+        # Must point at the persistent disk, or the ~1.3 GB model is re-downloaded
+        # on every cold start.
+        value: /var/data/huggingface
+      - key: EMBEDDING_DEVICE
+        value: cpu
 
       # Set these in the Render dashboard, not here.
       - key: GROQ_API_KEY
@@ -41,11 +48,8 @@ services:
         sync: false
 
     disk:
-      # The bge-large weights are ~1.3 GB and the local artifacts add more. Without
-      # a persistent disk the model is re-downloaded on every cold start, which on
-      # the free tier means a multi-minute first request after every idle spin-down.
       name: shifa42-data
-      mountPath: /app/data
+      mountPath: /var/data
       sizeGB: 5
 
 # ------------------------------------------------------------------------------
@@ -53,18 +57,21 @@ services:
 #
 # 1. Memory. Render's free instance is 512 MB. bge-large-en-v1.5 needs roughly
 #    1.3 GB resident, so THE FREE PLAN WILL OOM on model load. Either move to a
-#    paid instance (>=2 GB), swap to bge-small-en-v1.5, or run embeddings offline
-#    and serve query-time vectors from a hosted embedding API. This is a real
-#    constraint, not a formality — the free tier as configured here will not boot
-#    the full stack.
+#    paid instance (>=2 GB), swap to bge-small-en-v1.5, or precompute embeddings
+#    offline and serve query-time vectors from a hosted embedding API. This is a
+#    real constraint, not a formality.
 #
-# 2. Cold starts. Free services spin down after 15 minutes idle. The first request
+# 2. `pip install -e .` pulls torch, which is a large build on the free tier and
+#    may exceed the build timeout. A CPU-only torch wheel index shortens it:
+#      pip install torch --index-url https://download.pytorch.org/whl/cpu
+#
+# 3. Cold starts. Free services spin down after 15 minutes idle. The first request
 #    afterwards pays the container start plus the model load.
 #
-# 3. Index population. Deploying only ships code. The corpus must be ingested and
+# 4. Index population. Deploying only ships code. The corpus must be ingested and
 #    embedded before the service can answer anything:
 #      render shell shifa42-backend
 #      python scripts/ingest_guidelines.py && python scripts/embed_index.py
-#    Until then /api/health reports "degraded" with an empty vector store, which is
-#    the intended behaviour rather than a silent failure.
+#    Until then /api/health reports "degraded" with an empty vector store — the
+#    intended behaviour, not a silent failure.
 # ------------------------------------------------------------------------------
