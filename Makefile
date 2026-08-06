@@ -89,7 +89,21 @@ test: ## Run the backend test suite
 
 .PHONY: build
 build: ## Production build of the frontend
+	@# `next build` and `next dev` share .next/. Running the build while the dev
+	@# server is up overwrites its chunk manifest, and the dev server then serves
+	@# 404 for every asset — the page renders as unstyled HTML with no error that
+	@# points at the cause. Refuse rather than silently corrupting it.
+	@if lsof -ti:3000 >/dev/null 2>&1; then \
+		echo "ERROR: something is listening on :3000 (likely 'next dev')."; \
+		echo "       next build shares .next/ with it and will break the dev server."; \
+		echo "       Stop it first, or run: make build-force"; \
+		exit 1; \
+	fi
 	cd frontend && npm run build
+
+.PHONY: build-force
+build-force: ## Production build even if a dev server is running (clears .next after)
+	cd frontend && npm run build && rm -rf .next && echo "NOTE: .next cleared; restart 'make web'."
 
 .PHONY: fmt
 fmt: ## Auto-fix lint issues
