@@ -47,12 +47,16 @@ risk: ## Train and evaluate the ED risk model
 graph: ## Build the knowledge graph (requires GROQ_API_KEY)
 	cd backend && ../$(PY) scripts/build_graph.py
 
+.PHONY: diag
+diag: ## Retrieval diagnostics — no API key needed. Override: make diag N=200
+	cd backend && ../$(PY) scripts/eval_retrieval.py --n $(or $(N),100)
+
 .PHONY: bench
 bench: ## Run benchmarks (requires GROQ_API_KEY). Override: make bench N=200
 	cd backend && ../$(PY) scripts/run_benchmarks.py --n $(or $(N),50)
 
 .PHONY: pipeline
-pipeline: data index risk ## Everything that needs no API key
+pipeline: data index risk diag ## Everything that needs no API key
 
 # ------------------------------------------------------------------ run
 

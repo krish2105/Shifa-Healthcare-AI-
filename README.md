@@ -151,6 +151,18 @@ Cohort: 222 ED stays from **64 patients**, 67.6% admitted.
   and friends are measured *after* the admission decision. `--include-leaky`
   reproduces the inflated numbers to size the effect.
 
+### Retrieval diagnostics (`scripts/eval_retrieval.py`)
+
+Two of this project's design claims are testable **without any LLM**, so they are
+measured rather than asserted: that dense and sparse retrieval fail differently
+(making the hybrid worth an extra index), and that MMR removes real redundancy
+(making it more than added latency). See RESULTS.md §7.
+
+These are *diagnostics, not accuracy*. Honest retrieval recall would need gold
+relevance labels for this specific corpus, which do not exist — inventing a proxy
+and presenting it as retrieval quality is exactly the move this project avoids
+elsewhere.
+
 ### Benchmarks
 
 See **[RESULTS.md](RESULTS.md)**. The runner (`scripts/run_benchmarks.py`) evaluates
@@ -195,6 +207,7 @@ python scripts/ingest_mimic.py          # ~30 s   (MIMIC-IV-ED Demo)
 python scripts/ingest_rxnorm.py         # ~10 s   (14,663 RxNorm ingredients)
 python scripts/embed_index.py           # 45-90 min on Apple Silicon — resumable
 python scripts/train_risk.py            # ~30 s
+python scripts/eval_retrieval.py        # ~2 min  (retrieval diagnostics, no key needed)
 ```
 
 These need a real LLM key (see below):

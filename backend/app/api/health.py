@@ -101,6 +101,8 @@ async def info() -> dict[str, Any]:
         ("index", settings.processed_dir / "index_manifest.json"),
         ("ed_cohort", settings.processed_dir / "mimic_manifest.json"),
         ("risk_model", settings.risk_meta_path),
+        ("retrieval_diagnostics", settings.artifacts_dir / "retrieval_diagnostics.json"),
+        ("knowledge_graph", settings.artifacts_dir / "graph_manifest.json"),
     ):
         if path.exists():
             try:

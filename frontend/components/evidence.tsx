@@ -33,6 +33,21 @@ interface Info {
   } | null;
   benchmarks?: Record<string, unknown> | null;
   config?: Record<string, number | string> | null;
+  retrieval_diagnostics?: {
+    queries: number;
+    dense_vs_sparse_complementarity: { jaccard_overlap_at_10: { mean: number } };
+    final_set_provenance: {
+      from_dense_only: { mean: number };
+      from_sparse_only: { mean: number };
+      from_both: { mean: number };
+    };
+    mmr_redundancy_reduction: {
+      mean_pairwise_similarity_before: number;
+      mean_pairwise_similarity_after: number;
+      relative_reduction: number;
+    };
+    latency_ms: { dense: { median: number }; sparse: { median: number } };
+  } | null;
 }
 
 export function EvidenceSection() {
@@ -159,7 +174,20 @@ export function EvidenceSection() {
             )}
           </Panel>
 
-          <Panel className="md:col-span-12" title="Audit log · every node transition" effects={effects} delay={0.1}>
+          <Panel
+            className="md:col-span-12"
+            title="Retrieval diagnostics · why hybrid + MMR"
+            effects={effects}
+            delay={0.1}
+          >
+            {info?.retrieval_diagnostics ? (
+              <RetrievalDiagnostics d={info.retrieval_diagnostics} />
+            ) : (
+              <Empty label="Not yet measured — run scripts/eval_retrieval.py (no API key needed)." />
+            )}
+          </Panel>
+
+          <Panel className="md:col-span-12" title="Audit log · every node transition" effects={effects} delay={0.15}>
             {audit.length ? (
               <div className="overflow-x-auto">
                 <ol className="min-w-[560px] font-mono text-[10.5px] leading-[1.95]">
@@ -226,6 +254,92 @@ function Panel({
       </h3>
       {children}
     </motion.div>
+  );
+}
+
+/**
+ * Renders the no-LLM retrieval diagnostics.
+ *
+ * These exist to make two design claims falsifiable rather than asserted: that
+ * dense and sparse retrieval fail differently (so fusing them is worth an extra
+ * index), and that MMR removes real redundancy (so it is not pure latency).
+ */
+function RetrievalDiagnostics({
+  d,
+}: {
+  d: NonNullable<Info["retrieval_diagnostics"]>;
+}) {
+  const prov = d.final_set_provenance;
+  const mmr = d.mmr_redundancy_reduction;
+
+  const bars = [
+    { label: "dense only", v: prov.from_dense_only.mean, cls: "bg-accent" },
+    { label: "both agree", v: prov.from_both.mean, cls: "bg-accent/45" },
+    { label: "BM25 only", v: prov.from_sparse_only.mean, cls: "bg-warn" },
+  ];
+
+  return (
+    <div className="grid gap-5 md:grid-cols-3">
+      <div>
+        <p className="mb-2 text-[11.5px] leading-relaxed text-fg-3">
+          Where the final top-k came from, over {d.queries} real clinical questions.
+        </p>
+        <div className="flex h-2 overflow-hidden rounded-full bg-line-2">
+          {bars.map((b) => (
+            <div key={b.label} className={cn(b.cls)} style={{ width: `${b.v * 100}%` }} />
+          ))}
+        </div>
+        <dl className="mt-2.5 space-y-1 font-mono text-[10.5px]">
+          {bars.map((b) => (
+            <div key={b.label} className="flex justify-between gap-2">
+              <dt className="flex items-center gap-1.5 text-fg-3">
+                <span className={cn("h-2 w-2 rounded-sm", b.cls)} />
+                {b.label}
+              </dt>
+              <dd className="text-fg-2">{fmt.pct(b.v, 0)}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-2.5 text-[11px] leading-relaxed text-fg-3">
+          The BM25-only share would never have been retrieved by a dense-only system.
+        </p>
+      </div>
+
+      <div>
+        <p className="mb-2 text-[11.5px] leading-relaxed text-fg-3">
+          Dense vs BM25 top-10 agreement (Jaccard).
+        </p>
+        <div className="font-mono text-[30px] font-light leading-none tracking-tight text-accent">
+          {fmt.score(d.dense_vs_sparse_complementarity.jaccard_overlap_at_10.mean, 3)}
+        </div>
+        <p className="mt-2.5 text-[11px] leading-relaxed text-fg-3">
+          Low overlap means the two retrievers surface largely different evidence — the
+          premise of fusing them. Near 1.0 would mean the sparse index is redundant.
+        </p>
+      </div>
+
+      <div>
+        <p className="mb-2 text-[11.5px] leading-relaxed text-fg-3">
+          MMR redundancy reduction within the returned set.
+        </p>
+        <div className="flex items-baseline gap-2 font-mono">
+          <span className="text-[19px] font-light text-fg-3 line-through">
+            {fmt.score(mmr.mean_pairwise_similarity_before, 3)}
+          </span>
+          <span className="text-fg-3">→</span>
+          <span className="text-[30px] font-light leading-none tracking-tight text-accent">
+            {fmt.score(mmr.mean_pairwise_similarity_after, 3)}
+          </span>
+        </div>
+        <p className="mt-1.5 font-mono text-[10.5px] text-fg-2">
+          {fmt.pct(mmr.relative_reduction, 0)} less repetition
+        </p>
+        <p className="mt-2.5 text-[11px] leading-relaxed text-fg-3">
+          Mean pairwise similarity before and after MMR. No drop would mean MMR is pure
+          latency.
+        </p>
+      </div>
+    </div>
   );
 }
 
