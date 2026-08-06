@@ -1,0 +1,73 @@
+# ==============================================================================
+# Shifa42 — full local stack: Postgres+pgvector, backend, frontend.
+#
+#   docker compose up --build
+#
+# After the stack is healthy, populate the index (one-off, ~30-90 min for the
+# embedding pass depending on hardware):
+#
+#   docker compose exec backend python scripts/ingest_guidelines.py
+#   docker compose exec backend python scripts/ingest_mimic.py
+#   docker compose exec backend python scripts/embed_index.py
+#   docker compose exec backend python scripts/train_risk.py
+#
+# The knowledge graph and benchmarks additionally require a real LLM key:
+#   docker compose exec backend python scripts/build_graph.py
+#   docker compose exec backend python scripts/run_benchmarks.py --n 50
+# ==============================================================================
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: shifa
+      POSTGRES_PASSWORD: shifa_local_dev
+      POSTGRES_DB: shifa42
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Backend startup depends on this: a race here surfaces as an empty index
+      # rather than a connection error, which is far more confusing.
+      test: ["CMD-SHELL", "pg_isready -U shifa -d shifa42"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql://shifa:shifa_local_dev@db:5432/shifa42
+      APP_ENV: local
+      LOG_LEVEL: INFO
+      CORS_ORIGINS: http://localhost:3000
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CEREBRAS_API_KEY: ${CEREBRAS_API_KEY:-}
+      HF_HOME: /app/.cache/huggingface
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist the corpus, artifacts and the ~1.3 GB embedding model across
+      # rebuilds — re-downloading them on every `up` is the main friction here.
+      - ./backend/data:/app/data
+      - hfcache:/app/.cache/huggingface
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  hfcache:

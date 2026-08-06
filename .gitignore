@@ -1,0 +1,53 @@
+# ---- secrets ----
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ---- python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---- node ----
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+.eslintcache
+
+# ---- data & model artifacts (regenerate with scripts/) ----
+backend/data/raw/**
+backend/data/processed/**
+backend/data/artifacts/**
+!backend/data/**/.gitkeep
+!backend/data/**/README.md
+
+# ---- eval outputs: keep the summary, drop the raw run logs ----
+backend/eval_runs/**
+!backend/eval_runs/.gitkeep
+
+# ---- runtime logs ----
+backend/logs/
+*.log
+
+# ---- hf / torch caches ----
+.cache/
+*.pt
+*.bin
+*.safetensors
+
+# ---- os / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

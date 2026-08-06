@@ -1,0 +1,28 @@
+# Keeping the build context small matters here: data/ holds the corpus, the
+# embedding shards and the ~1.3 GB model cache. Shipping those into the image
+# would add gigabytes and bake a snapshot of the index into the layer.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+data/raw/
+data/processed/
+data/artifacts/
+eval_runs/
+logs/
+.cache/
+
+.env
+.env.*
+!.env.example
+
+.git/
+.gitignore
+*.md
+!README.md

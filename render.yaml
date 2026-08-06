@@ -1,0 +1,70 @@
+# Render blueprint for the Shifa42 backend.
+#
+# NOT DEPLOYED. This file is written and correct; nothing in this repository has
+# been pushed to Render. `render.yaml` is committed so the deployment is
+# reproducible by whoever chooses to run it.
+#
+# Before deploying, read the free-tier caveats at the bottom — they materially
+# affect whether this service behaves the way the local stack does.
+
+services:
+  - type: web
+    name: shifa42-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: CORS_ORIGINS
+        # Replace with the deployed Vercel origin. Never "*".
+        value: https://shifa42.vercel.app
+      - key: RATE_LIMIT
+        value: 30/minute
+      - key: GROUNDEDNESS_THRESHOLD
+        value: "0.75"
+      - key: MAX_REFORMULATIONS
+        value: "2"
+      - key: HF_HOME
+        value: /app/.cache/huggingface
+
+      # Set these in the Render dashboard, not here.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+
+    disk:
+      # The bge-large weights are ~1.3 GB and the local artifacts add more. Without
+      # a persistent disk the model is re-downloaded on every cold start, which on
+      # the free tier means a multi-minute first request after every idle spin-down.
+      name: shifa42-data
+      mountPath: /app/data
+      sizeGB: 5
+
+# ------------------------------------------------------------------------------
+# Free-tier caveats — read before deploying
+#
+# 1. Memory. Render's free instance is 512 MB. bge-large-en-v1.5 needs roughly
+#    1.3 GB resident, so THE FREE PLAN WILL OOM on model load. Either move to a
+#    paid instance (>=2 GB), swap to bge-small-en-v1.5, or run embeddings offline
+#    and serve query-time vectors from a hosted embedding API. This is a real
+#    constraint, not a formality — the free tier as configured here will not boot
+#    the full stack.
+#
+# 2. Cold starts. Free services spin down after 15 minutes idle. The first request
+#    afterwards pays the container start plus the model load.
+#
+# 3. Index population. Deploying only ships code. The corpus must be ingested and
+#    embedded before the service can answer anything:
+#      render shell shifa42-backend
+#      python scripts/ingest_guidelines.py && python scripts/embed_index.py
+#    Until then /api/health reports "degraded" with an empty vector store, which is
+#    the intended behaviour rather than a silent failure.
+# ------------------------------------------------------------------------------

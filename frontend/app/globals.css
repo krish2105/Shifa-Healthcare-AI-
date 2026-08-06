@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   Shifa42 — Direction A: graphite base, cool teal accent.
+
+   Dark is the designed theme; light is a deliberate re-map, not an inversion.
+   Inverting a dark palette produces muddy mid-greys and destroys the contrast
+   relationships the accent depends on, so each theme sets its own values.
+   ============================================================================ */
+
+@layer base {
+  :root {
+    --bg:          10 11 13;
+    --bg-elev:     15 17 19;
+    --surface:     255 255 255 / 0.028;
+    --surface-2:   255 255 255 / 0.045;
+    --line:        255 255 255 / 0.075;
+    --line-2:      255 255 255 / 0.13;
+
+    --fg:          238 241 243;
+    --fg-2:        154 163 171;
+    --fg-3:         95 104 111;
+
+    --accent:       46 230 197;
+    --accent-2:     20 184 166;
+    --accent-fg:     4  35  30;
+
+    --warn:        240 180  41;
+    --danger:      244 104  94;
+    --ok:           46 230 197;
+
+    --glow:         46 230 197 / 0.30;
+    --accent-dim:   46 230 197 / 0.10;
+    --mesh-1:       20 184 166 / 0.20;
+    --mesh-2:       46 230 197 / 0.09;
+
+    --radius: 0.9rem;
+  }
+
+  [data-theme="light"] {
+    --bg:         250 251 252;
+    --bg-elev:    255 255 255;
+    --surface:      9  12  16 / 0.028;
+    --surface-2:    9  12  16 / 0.05;
+    --line:         9  12  16 / 0.09;
+    --line-2:       9  12  16 / 0.16;
+
+    --fg:          13  17  21;
+    --fg-2:        74  86  96;
+    --fg-3:       124 137 147;
+
+    /* Darkened accent: the dark-theme teal fails 4.5:1 against a light ground. */
+    --accent:       0 124 107;
+    --accent-2:     0 100  87;
+    --accent-fg:  255 255 255;
+
+    --warn:       161 108   0;
+    --danger:     193  49  39;
+    --ok:           0 124 107;
+
+    --glow:         0 124 107 / 0.18;
+    --accent-dim:   0 124 107 / 0.08;
+    --mesh-1:       0 124 107 / 0.10;
+    --mesh-2:       0 124 107 / 0.05;
+  }
+
+  * {
+    border-color: rgb(var(--line));
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: rgb(var(--bg));
+    color: rgb(var(--fg));
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible focus everywhere, including for keyboard-only navigation. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.28);
+    color: rgb(var(--fg));
+  }
+
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--line-2));
+    border-radius: 99px;
+    border: 3px solid rgb(var(--bg));
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--fg-3)); }
+}
+
+@layer components {
+  .glass {
+    background: rgb(var(--surface));
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border: 1px solid rgb(var(--line));
+  }
+
+  .card {
+    background: rgb(var(--surface));
+    border: 1px solid rgb(var(--line));
+    border-radius: var(--radius);
+  }
+
+  /* Faint instrument grid, masked to fade out below the fold. */
+  .grid-bg {
+    background-image:
+      linear-gradient(rgb(var(--line)) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--line)) 1px, transparent 1px);
+    background-size: 68px 68px;
+    -webkit-mask-image: radial-gradient(120% 68% at 50% 0%, #000 0%, transparent 72%);
+    mask-image: radial-gradient(120% 68% at 50% 0%, #000 0%, transparent 72%);
+  }
+
+  .mesh-bg {
+    background:
+      radial-gradient(46% 55% at 72% 8%,  rgb(var(--mesh-1)) 0%, transparent 68%),
+      radial-gradient(38% 46% at 14% 26%, rgb(var(--mesh-2)) 0%, transparent 70%);
+    filter: blur(24px);
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty  { text-wrap: pretty; }
+}
+
+/* ----------------------------------------------------------------------------
+   Reduced motion. Belt and braces: components also read useReducedMotion() and
+   skip animation logic entirely, but this neutralizes any transition added
+   later, including in third-party CSS.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
